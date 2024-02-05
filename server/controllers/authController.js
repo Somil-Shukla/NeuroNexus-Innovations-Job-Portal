@@ -1,15 +1,13 @@
-const express = require("express");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
-const authKeys = require("../lib/authKeys");
+const User = require("../models/user");
+const JobApplicant = require("../models/applicant");
+const Recruiter = require("../models/recruiter");
+const dotenv=require("dotenv");
+dotenv.config();
+// const router = express.Router();
 
-const User = require("../db/User");
-const JobApplicant = require("../db/JobApplicant");
-const Recruiter = require("../db/Recruiter");
-
-const router = express.Router();
-
-router.post("/signup", async (req, res, next) => {
+const signupController= (req, res) => {
   const data = req.body;
   let user = new User({
     email: data.email,
@@ -41,15 +39,14 @@ router.post("/signup", async (req, res, next) => {
         .save()
         .then(() => {
           // Token
-          const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
+          const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
           res.json({
             token: token,
             type: user.type,
           });
         })
         .catch((err) => {
-          user
-            .delete()
+            user.deleteOne({ _id: user._id }).exec()
             .then(() => {
               res.status(400).json(err);
             })
@@ -62,9 +59,9 @@ router.post("/signup", async (req, res, next) => {
     .catch((err) => {
       res.status(400).json(err);
     });
-});
+};
 
-router.post("/login", (req, res, next) => {
+const loginController= (req, res, next) => {
   passport.authenticate(
     "local",
     { session: false },
@@ -77,13 +74,13 @@ router.post("/login", (req, res, next) => {
         return;
       }
       // Token
-      const token = jwt.sign({ _id: user._id }, authKeys.jwtSecretKey);
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
       res.json({
         token: token,
         type: user.type,
       });
     }
   )(req, res, next);
-});
+};
 
-module.exports = router;
+module.exports = {signupController,loginController};
